@@ -1,14 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"github.com/techleeone/gophp/serialize"
+	"strconv"
 	"strings"
 )
 
 type SkCategory struct {
 	Id string `json:"id"`
+	Redis_key string `json:"redis_key"`
 	Name string `json:"name"`
 	Slug string `json:"slug"`
+	Thumbnail string `json:"thumbnail"`
 	Parent_id string `json:"parent_id"`
 	Recommended_categories string `json:"recommended_categories"`
 	Dative_title string `json:"dative_title"`
@@ -24,7 +28,13 @@ type ItemCategory map[int64]SkCategory
 
 type SkTableCategories []ItemCategory
 
-func SkCategories(terms []WpTableTerms, termTaxonomy []WpTableTermTaxonomy, termMeta map[int64][]TermmetaItems, attachments map[int64][]sizeAttachments)  {
+func SkCategories(terms []WpTableTerms,
+	termTaxonomy []WpTableTermTaxonomy,
+	termMeta map[int64][]TermmetaItems,
+	attachments map[int64][]sizeAttachments,
+	relationships WpTableTermRelationships,
+	posts []WpPosts)  {
+
 	var categoriesData SkTableCategories
 
 	for _, itemTaxonomy := range termTaxonomy{
@@ -39,8 +49,10 @@ func SkCategories(terms []WpTableTerms, termTaxonomy []WpTableTermTaxonomy, term
 							categoryItems := ItemCategory {
 								keyTaxonomy: SkCategory{
 									Id: setId(valueItemTerm),
+									Redis_key: setRedisKey(valueItemTerm.Term_id, relationships, posts),
 									Name: setName(valueItemTerm),
 									Slug: setSlug(valueItemTerm),
+									Thumbnail: setThumbnail(thisTermMeta, attachments),
 									Parent_id: setParentId(valueTaxonomy),
 									Recommended_categories: setRecommendedCategories(thisTermMeta),
 									Dative_title: setDativeTitle(thisTermMeta),
@@ -81,12 +93,59 @@ func setId(term Terms) string {
 	return term.Term_id
 }
 
+func setRedisKey(id string, relationships WpTableTermRelationships, posts []WpPosts) string {
+	var ids []string
+
+	for _, relations := range relationships {
+		for _, term := range relations {
+			if term.Term_taxonomy_id == id {
+				ids = append(ids, term.Object_id)
+			}
+		}
+	}
+
+	//var products []string
+
+	for _, i := range ids {
+		for _, post := range posts {
+			for _, p := range post {
+				if i == p.Id {
+					fmt.Println(" ------ ", p.Id, " _______ ", p.Post_modified)
+				}
+			}
+		}
+	}
+
+	return ""
+}
+
 func setName(term Terms) string {
 	return term.Name
 }
 
 func setSlug(term Terms) string {
 	return term.Slug
+}
+
+func setThumbnail(termMeta []TermmetaItems, attachments map[int64][]sizeAttachments) string {
+	var thumbnails []sizeAttachments
+	var thumbnail string
+
+	for _, v := range termMeta {
+		if val, ok := v["thumbnail_id"]; ok {
+			for k, img := range attachments {
+				i, _ := strconv.ParseInt(val, 10, 64)
+				if i == k {
+					thumbnails = img
+				}
+			}
+		}
+	}
+
+	thumbnailsBytes, _ := serialize.Marshal(thumbnails)
+	thumbnail = string(thumbnailsBytes[:])
+
+	return thumbnail
 }
 
 func setParentId(taxonomies TermTaxonomy) string {

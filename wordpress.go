@@ -279,3 +279,114 @@ func Contains(a []string, x string) bool {
 	}
 	return false
 }
+
+type TermRelationships struct {
+	Object_id string `json:"object_id"`
+	Term_taxonomy_id string `json:"term_taxonomy_id"`
+}
+
+type WpTableTermRelationships map[int64][]TermRelationships
+
+func GetTermRelationships() WpTableTermRelationships {
+
+	rows, err := dbs.Query("SELECT object_id, term_taxonomy_id FROM wp_term_relationships")
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer rows.Close()
+
+	var relationships []TermRelationships
+
+	for rows.Next() {
+		r := TermRelationships{}
+		err := rows.Scan(&r.Object_id, &r.Term_taxonomy_id)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		relationships = append(relationships, r)
+	}
+
+	wp_term_relationships := make(WpTableTermRelationships)
+
+	for _, rl := range relationships {
+		ri := strToInt(rl.Object_id)
+		tmp_r := TermRelationships{rl.Object_id, rl.Term_taxonomy_id}
+		wp_term_relationships[ri] = append(wp_term_relationships[ri], tmp_r)
+	}
+
+	return wp_term_relationships
+}
+
+type Post struct {
+	Id string `json:"id"`
+	Post_content string `json:"post_content"`
+	Post_parent string `json:"post_parent"`
+	Post_status string `json:"post_status"`
+	Post_title string `json:"post_title"`
+	Guid string `json:"guid"`
+	Post_name string `json:"post_name"`
+	Post_date string `json:"post_date"`
+	Post_modified string `json:"post_modified"`
+	Post_type string `json:"post_type"`
+	Menu_order string `json:"menu_order"`
+}
+
+type WpPosts map[int64]Post
+
+func GetPosts() []WpPosts {
+
+	rows, err := dbs.Query("SELECT ID, post_content, post_title, post_status, post_parent, guid, post_name, post_date, post_modified, post_type, menu_order FROM wp_posts WHERE post_status = 'publish' OR post_status = 'inherit' OR post_status = 'future'")
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer rows.Close()
+
+	var posts []Post
+
+	for rows.Next() {
+		p := Post{}
+		err := rows.Scan(
+			&p.Id,
+			&p.Post_title,
+			&p.Post_parent,
+			&p.Post_name,
+			&p.Post_content,
+			&p.Post_status,
+			&p.Post_date,
+			&p.Post_modified,
+			&p.Post_type,
+			&p.Guid,
+			&p.Menu_order)
+
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		posts = append(posts, p)
+	}
+
+	var wpPostList []WpPosts
+	for _, post := range posts {
+		pi := strToInt(post.Id)
+		wpPosts := WpPosts{pi: {
+			post.Id,
+			post.Post_title,
+			post.Post_parent,
+			post.Post_name,
+			post.Post_content,
+			post.Post_status,
+			post.Post_date,
+			post.Post_modified,
+			post.Post_type,
+			post.Guid,
+			post.Menu_order}}
+		wpPostList = append(wpPostList, wpPosts)
+	}
+
+	return wpPostList
+}
