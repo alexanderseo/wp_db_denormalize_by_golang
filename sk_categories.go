@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/techleeone/gophp/serialize"
 	"strings"
 )
@@ -17,13 +16,15 @@ type SkCategory struct {
 	Has_fabric string `json:"has_fabric"`
 	Attributes_product_comparison string `json:"attributes_product_comparison"`
 	Attributes_filter_list string `json:"attributes_filter_list"`
+	Enable_comparison string `json:"enable_comparison"`
+	Detail_description string `json:"detail_description"`
 }
 
 type ItemCategory map[int64]SkCategory
 
 type SkTableCategories []ItemCategory
 
-func SkCategories(terms []WpTableTerms, termTaxonomy []WpTableTermTaxonomy, termMeta map[int64][]TermmetaItems)  {
+func SkCategories(terms []WpTableTerms, termTaxonomy []WpTableTermTaxonomy, termMeta map[int64][]TermmetaItems, attachments map[int64][]sizeAttachments)  {
 	var categoriesData SkTableCategories
 
 	for _, itemTaxonomy := range termTaxonomy{
@@ -47,6 +48,8 @@ func SkCategories(terms []WpTableTerms, termTaxonomy []WpTableTermTaxonomy, term
 									Has_fabric: setHasFabric(thisTermMeta),
 									Attributes_product_comparison: setAttributesProductComparison(thisTermMeta),
 									Attributes_filter_list: setAttributesFilterList(thisTermMeta),
+									Enable_comparison: setEnableComparison(thisTermMeta),
+									Detail_description: setDetailDescription(thisTermMeta),
 								},
 							}
 
@@ -58,7 +61,7 @@ func SkCategories(terms []WpTableTerms, termTaxonomy []WpTableTermTaxonomy, term
 		}
 	}
 
-	fmt.Println(categoriesData)
+	//fmt.Println(categoriesData)
 }
 
 func setThisTermMeta(id int64, termMeta map[int64][]TermmetaItems) []TermmetaItems {
@@ -221,4 +224,37 @@ func setAttributesFilterList(termMeta []TermmetaItems) string {
 	}
 
 	return attributes_filter_list
+}
+
+func setEnableComparison(termMeta []TermmetaItems) string {
+	enable_product_comparison := "0"
+
+	for _, v := range termMeta {
+		if val, ok := v["enable-product-comparison"]; ok {
+			enable_product_comparison = val
+		}
+	}
+
+	return enable_product_comparison
+}
+
+func setDetailDescription(termMeta []TermmetaItems) string {
+	search_meta_keys := [3]string{"details_0_details_row", "details_1_details_row", "details_2_details_row"}
+	type description map[string]string
+	descriptions := make(map[int][]description)
+
+	for key, meta := range search_meta_keys {
+		for _, v := range termMeta {
+			if val, ok := v[meta]; ok {
+				tempDescription := description{meta: val}
+				descriptions[key] = append(descriptions[key], tempDescription)
+
+			}
+		}
+	}
+
+	descriptionsBytes, _ := serialize.Marshal(descriptions)
+	descriptionsString := string(descriptionsBytes[:])
+
+	return descriptionsString
 }

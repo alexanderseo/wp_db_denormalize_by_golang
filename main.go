@@ -11,10 +11,12 @@ func main() {
 	terms := GetTerms()
 	term_taxonomy := GetTermTaxonomy()
 	termmeta := GetTermmeta()
+	attachmentsPosts := SetMapAttachmentsBySizes()
+
 	//xType := fmt.Sprintf("%T", terms)
 	//fmt.Println(xType) // "[]int"
-	SkCategories(terms, term_taxonomy, termmeta)
 
+	SkCategories(terms, term_taxonomy, termmeta, attachmentsPosts)
 
 	duration := time.Since(start)
 	fmt.Println(duration)
