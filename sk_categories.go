@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/techleeone/gophp/serialize"
+	"hash/fnv"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type SkCategory struct {
@@ -73,7 +75,7 @@ func SkCategories(terms []WpTableTerms,
 		}
 	}
 
-	//fmt.Println(categoriesData)
+	fmt.Println(categoriesData)
 }
 
 func setThisTermMeta(id int64, termMeta map[int64][]TermmetaItems) []TermmetaItems {
@@ -104,19 +106,33 @@ func setRedisKey(id string, relationships WpTableTermRelationships, posts []WpPo
 		}
 	}
 
-	//var products []string
-
+	var products []string
+	dataLayout := "2006-01-02 15:04:05"
 	for _, i := range ids {
 		for _, post := range posts {
 			for _, p := range post {
 				if i == p.Id {
-					fmt.Println(" ------ ", p.Id, " _______ ", p.Post_modified)
+					var sb strings.Builder
+					tTime, _ := time.Parse(dataLayout, p.Post_modified)
+					sb.WriteString(p.Id)
+					sb.WriteString("_")
+					strData := strconv.Itoa(int(tTime.Unix()))
+					sb.WriteString(strData)
+					products = append(products, sb.String())
+					sb.Reset()
 				}
 			}
 		}
 	}
 
-	return ""
+
+	productsString := strings.Join(products[:], "_")
+	algorithm := fnv.New64a()
+	algorithm.Write([]byte(productsString))
+	hash := algorithm.Sum64()
+
+	strHash := strconv.FormatUint(hash, 10)
+	return strHash
 }
 
 func setName(term Terms) string {
