@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"strconv"
@@ -19,18 +20,18 @@ func strToInt(id string) int64 {
 	return idInt
 }
 
-type Terms struct {
+type Term struct {
 	Term_id string `json:"term_id"`
 	Name string `json:"name"`
 	Slug string `json:"slug"`
 	Term_group string `json:"term_group"`
 }
 
-type WpTableTerms map[int64]Terms
+type WpTerms map[int64]Term
 
-func GetTerms() []WpTableTerms {
+func GetTerms() []WpTerms {
 
-	var wp_terms []WpTableTerms
+	var wpTerms []WpTerms
 
 	rows, err := dbs.Query("SELECT * FROM wp_terms")
 
@@ -40,10 +41,9 @@ func GetTerms() []WpTableTerms {
 
 	defer rows.Close()
 
-	terms := []Terms{}
-
+	var terms []Term
 	for rows.Next() {
-		t := Terms{}
+		t := Term{}
 		err := rows.Scan(&t.Term_id, &t.Name, &t.Slug, &t.Term_group)
 
 		if err != nil {
@@ -55,12 +55,12 @@ func GetTerms() []WpTableTerms {
 	}
 
 	for _, t := range terms{
-		term_id := strToInt(t.Term_id)
-		terms_map := WpTableTerms{term_id: {t.Term_id, t.Name, t.Slug, t.Term_group}}
-		wp_terms = append(wp_terms, terms_map)
+		termId := strToInt(t.Term_id)
+		termsMap := WpTerms{termId: {t.Term_id, t.Name, t.Slug, t.Term_group}}
+		wpTerms = append(wpTerms, termsMap)
 	}
 
-	return wp_terms
+	return wpTerms
 }
 
 type TermTaxonomy struct {
@@ -72,11 +72,11 @@ type TermTaxonomy struct {
 	Count string `json:"count"`
 }
 
-type WpTableTermTaxonomy map[int64]TermTaxonomy
+type WpTermTaxonomy map[int64]TermTaxonomy
 
-func GetTermTaxonomy() []WpTableTermTaxonomy {
+func GetTermTaxonomy() []WpTermTaxonomy {
 
-	var wp_term_taxonomy []WpTableTermTaxonomy
+	var wpTermTaxonomy []WpTermTaxonomy
 
 	rows, err := dbs.Query("SELECT * FROM wp_term_taxonomy")
 
@@ -86,7 +86,7 @@ func GetTermTaxonomy() []WpTableTermTaxonomy {
 
 	defer rows.Close()
 
-	term_taxonomy := []TermTaxonomy{}
+	var termTaxonomy []TermTaxonomy
 
 	for rows.Next() {
 		t := TermTaxonomy{}
@@ -97,16 +97,23 @@ func GetTermTaxonomy() []WpTableTermTaxonomy {
 			continue
 		}
 
-		term_taxonomy = append(term_taxonomy, t)
+		termTaxonomy = append(termTaxonomy, t)
 	}
 
-	for _, t := range term_taxonomy{
-		term_taxonomy_id := strToInt(t.Term_taxonomy_id)
-		taxonomy := WpTableTermTaxonomy{term_taxonomy_id: {t.Term_taxonomy_id, t.Term_id, t.Taxonomy, t.Description, t.Parent, t.Count}}
-		wp_term_taxonomy = append(wp_term_taxonomy, taxonomy)
+	for _, t := range termTaxonomy {
+		termTaxonomyId := strToInt(t.Term_taxonomy_id)
+		taxonomy := WpTermTaxonomy {
+			termTaxonomyId: {
+				t.Term_taxonomy_id,
+				t.Term_id,
+				t.Taxonomy,
+				t.Description,
+				t.Parent,
+				t.Count}}
+		wpTermTaxonomy = append(wpTermTaxonomy, taxonomy)
 	}
 
-	return wp_term_taxonomy
+	return wpTermTaxonomy
 }
 
 type Termmeta struct {
@@ -128,7 +135,7 @@ func GetTermmeta() map[int64][]TermmetaItems {
 
 	defer rows.Close()
 
-	termmeta := []Termmeta{}
+	var termmeta []Termmeta
 
 	for rows.Next() {
 		t := Termmeta{}
@@ -141,14 +148,14 @@ func GetTermmeta() map[int64][]TermmetaItems {
 
 		termmeta = append(termmeta, t)
 	}
-	wp_termmeta := make(map[int64][]TermmetaItems)
+	wpTermmeta := make(map[int64][]TermmetaItems)
 	for _, t := range termmeta{
 		tm := strToInt(t.Term_id)
 		tmeta := TermmetaItems{t.Meta_key: t.Meta_value}
-		wp_termmeta[tm] = append(wp_termmeta[tm], tmeta)
+		wpTermmeta[tm] = append(wpTermmeta[tm], tmeta)
 	}
 
-	return wp_termmeta
+	return wpTermmeta
 }
 
 type AttachmentsPost struct {
@@ -170,7 +177,7 @@ func GetAttachments() []WpPostsAttachments {
 
 	defer rows.Close()
 
-	attachmentRows := []AttachmentsPost{}
+	var attachmentRows []AttachmentsPost
 
 	for rows.Next() {
 		a := AttachmentsPost{}
@@ -187,7 +194,12 @@ func GetAttachments() []WpPostsAttachments {
 
 	for _, a := range attachmentRows {
 		attachmentId := strToInt(a.Id)
-		attachmentsItem := WpPostsAttachments{attachmentId: {a.Id, a.Post_title, a.Post_parent, a.Guid}}
+		attachmentsItem := WpPostsAttachments{
+			attachmentId: {
+				Id: a.Id,
+				Post_title: a.Post_title,
+				Post_parent: a.Post_parent,
+				Guid: a.Guid}}
 		attachmentsPosts = append(attachmentsPosts, attachmentsItem)
 	}
 
@@ -323,9 +335,9 @@ func GetTermRelationships() WpTableTermRelationships {
 type Post struct {
 	Id string `json:"id"`
 	Post_content string `json:"post_content"`
-	Post_parent string `json:"post_parent"`
-	Post_status string `json:"post_status"`
 	Post_title string `json:"post_title"`
+	Post_status string `json:"post_status"`
+	Post_parent string `json:"post_parent"`
 	Guid string `json:"guid"`
 	Post_name string `json:"post_name"`
 	Post_date string `json:"post_date"`
@@ -336,7 +348,7 @@ type Post struct {
 
 type WpPosts map[int64]Post
 
-func GetPosts() []WpPosts {
+func GetPosts() *[]WpPosts {
 
 	rows, err := dbs.Query("SELECT ID, post_content, post_title, post_status, post_parent, guid, post_name, post_date, post_modified, post_type, menu_order FROM wp_posts WHERE post_status = 'publish' OR post_status = 'inherit' OR post_status = 'future'")
 
@@ -352,15 +364,15 @@ func GetPosts() []WpPosts {
 		p := Post{}
 		err := rows.Scan(
 			&p.Id,
-			&p.Post_title,
-			&p.Post_parent,
-			&p.Post_name,
 			&p.Post_content,
+			&p.Post_title,
 			&p.Post_status,
+			&p.Post_parent,
+			&p.Guid,
+			&p.Post_name,
 			&p.Post_date,
 			&p.Post_modified,
 			&p.Post_type,
-			&p.Guid,
 			&p.Menu_order)
 
 		if err != nil {
@@ -374,19 +386,94 @@ func GetPosts() []WpPosts {
 	for _, post := range posts {
 		pi := strToInt(post.Id)
 		wpPosts := WpPosts{pi: {
-			post.Id,
-			post.Post_title,
-			post.Post_parent,
-			post.Post_name,
-			post.Post_content,
-			post.Post_status,
-			post.Post_date,
-			post.Post_modified,
-			post.Post_type,
-			post.Guid,
-			post.Menu_order}}
+			Id:post.Id,
+			Post_content: post.Post_content,
+			Post_title: post.Post_title,
+			Post_status: post.Post_status,
+			Post_parent: post.Post_parent,
+			Guid: post.Guid,
+			Post_name: post.Post_name,
+			Post_date: post.Post_date,
+			Post_modified: post.Post_modified,
+			Post_type: post.Post_type,
+			Menu_order: post.Menu_order}}
 		wpPostList = append(wpPostList, wpPosts)
 	}
 
-	return wpPostList
+	return &wpPostList
+}
+
+type WpFabrics map[int64]Post
+
+func GetFabrics(fabrics []WpPosts) []WpFabrics {
+	fb := fabrics
+
+	var wp_fabrics []WpFabrics
+	for _, f := range fb {
+		for _, fabric := range f {
+			if fabric.Post_type == "fabric" {
+				fi := strToInt(fabric.Id)
+				wp_fabric := WpFabrics{fi: {
+					Id: fabric.Id,
+					Post_content: fabric.Post_content,
+					Post_parent: fabric.Post_parent,
+					Post_name: fabric.Post_name,
+					Post_title: fabric.Post_title,
+					Post_status: fabric.Post_status,
+					Post_date: fabric.Post_date,
+					Post_modified: fabric.Post_modified,
+					Post_type: fabric.Post_type,
+					Guid: fabric.Guid,
+					Menu_order: fabric.Menu_order}}
+				wp_fabrics = append(wp_fabrics, wp_fabric)
+			}
+		}
+	}
+
+	return wp_fabrics
+}
+
+type Postmeta struct {
+	Meta_id string `json:"meta_id"`
+	Post_id string `json:"post_id"`
+	Meta_key string `json:"meta_key"`
+	Meta_value sql.NullString `json:"meta_value"`
+}
+
+func GetPostmeta() map[int64][]Postmeta {
+
+	rows, err := dbs.Query("SELECT * FROM wp_postmeta")
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer rows.Close()
+
+	var postMeta []Postmeta
+
+	for rows.Next() {
+		pm := Postmeta{}
+		err := rows.Scan(&pm.Meta_id, &pm.Post_id, &pm.Meta_key, &pm.Meta_value)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		postMeta = append(postMeta, pm)
+	}
+
+	wpPostMeta := make(map[int64][]Postmeta)
+	for _, m := range postMeta {
+		mi := strToInt(m.Post_id)
+		wpm := Postmeta{
+			Meta_id: m.Meta_id,
+			Post_id: m.Post_id,
+			Meta_key: m.Meta_key,
+			Meta_value: m.Meta_value,
+		}
+		wpPostMeta[mi] = append(wpPostMeta[mi], wpm)
+	}
+
+	return wpPostMeta
 }

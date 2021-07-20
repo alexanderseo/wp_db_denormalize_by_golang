@@ -8,16 +8,24 @@ import (
 
 func main() {
 	start := time.Now()
+
+
 	terms := GetTerms()
 	term_taxonomy := GetTermTaxonomy()
 	termmeta := GetTermmeta()
 	attachmentsPosts := SetMapAttachmentsBySizes()
 	relationships := GetTermRelationships()
 	posts := GetPosts()
+	fabrics := GetFabrics(*posts)
+	postMeta := GetPostmeta()
+
+
 	//xType := fmt.Sprintf("%T", terms)
 	//fmt.Println(xType) // "[]int"
 
-	SkCategories(terms, term_taxonomy, termmeta, attachmentsPosts, relationships, posts)
+	SkCategories(terms, term_taxonomy, termmeta, attachmentsPosts, relationships, *posts)
+	SkFabrics(fabrics, postMeta)
+
 
 	duration := time.Since(start)
 	fmt.Println(duration)

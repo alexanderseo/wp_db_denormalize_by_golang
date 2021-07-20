@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/techleeone/gophp/serialize"
 	"hash/fnv"
 	"strconv"
@@ -30,8 +29,8 @@ type ItemCategory map[int64]SkCategory
 
 type SkTableCategories []ItemCategory
 
-func SkCategories(terms []WpTableTerms,
-	termTaxonomy []WpTableTermTaxonomy,
+func SkCategories(terms []WpTerms,
+	termTaxonomy []WpTermTaxonomy,
 	termMeta map[int64][]TermmetaItems,
 	attachments map[int64][]sizeAttachments,
 	relationships WpTableTermRelationships,
@@ -75,7 +74,7 @@ func SkCategories(terms []WpTableTerms,
 		}
 	}
 
-	fmt.Println(categoriesData)
+	//fmt.Println(categoriesData)
 }
 
 func setThisTermMeta(id int64, termMeta map[int64][]TermmetaItems) []TermmetaItems {
@@ -91,7 +90,7 @@ func setThisTermMeta(id int64, termMeta map[int64][]TermmetaItems) []TermmetaIte
 	return thisTermMeta
 }
 
-func setId(term Terms) string {
+func setId(term Term) string {
 	return term.Term_id
 }
 
@@ -135,11 +134,11 @@ func setRedisKey(id string, relationships WpTableTermRelationships, posts []WpPo
 	return strHash
 }
 
-func setName(term Terms) string {
+func setName(term Term) string {
 	return term.Name
 }
 
-func setSlug(term Terms) string {
+func setSlug(term Term) string {
 	return term.Slug
 }
 
