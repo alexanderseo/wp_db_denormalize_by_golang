@@ -6,6 +6,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var dbs = DbConnect()
@@ -29,8 +30,8 @@ type Term struct {
 
 type WpTerms map[int64]Term
 
-func GetTerms() []WpTerms {
-
+func GetTerms() *[]WpTerms {
+	start := time.Now()
 	var wpTerms []WpTerms
 
 	rows, err := dbs.Query("SELECT * FROM wp_terms")
@@ -59,8 +60,10 @@ func GetTerms() []WpTerms {
 		termsMap := WpTerms{termId: {t.Term_id, t.Name, t.Slug, t.Term_group}}
 		wpTerms = append(wpTerms, termsMap)
 	}
+	duration := time.Since(start)
+	fmt.Println("Terms: ", duration)
 
-	return wpTerms
+	return &wpTerms
 }
 
 type TermTaxonomy struct {
@@ -74,8 +77,8 @@ type TermTaxonomy struct {
 
 type WpTermTaxonomy map[int64]TermTaxonomy
 
-func GetTermTaxonomy() []WpTermTaxonomy {
-
+func GetTermTaxonomy() *[]WpTermTaxonomy {
+	start := time.Now()
 	var wpTermTaxonomy []WpTermTaxonomy
 
 	rows, err := dbs.Query("SELECT * FROM wp_term_taxonomy")
@@ -112,8 +115,9 @@ func GetTermTaxonomy() []WpTermTaxonomy {
 				t.Count}}
 		wpTermTaxonomy = append(wpTermTaxonomy, taxonomy)
 	}
-
-	return wpTermTaxonomy
+	duration := time.Since(start)
+	fmt.Println("Taxonomy: ", duration)
+	return &wpTermTaxonomy
 }
 
 type Termmeta struct {
@@ -125,8 +129,8 @@ type Termmeta struct {
 
 type TermmetaItems map[string]string
 
-func GetTermmeta() map[int64][]TermmetaItems {
-
+func GetTermmeta() *map[int64][]TermmetaItems {
+	start := time.Now()
 	rows, err := dbs.Query("SELECT * FROM wp_termmeta")
 
 	if err != nil {
@@ -154,8 +158,9 @@ func GetTermmeta() map[int64][]TermmetaItems {
 		tmeta := TermmetaItems{t.Meta_key: t.Meta_value}
 		wpTermmeta[tm] = append(wpTermmeta[tm], tmeta)
 	}
-
-	return wpTermmeta
+	duration := time.Since(start)
+	fmt.Println("Termmeta: ", duration)
+	return &wpTermmeta
 }
 
 type AttachmentsPost struct {
@@ -167,8 +172,8 @@ type AttachmentsPost struct {
 
 type WpPostsAttachments map[int64]AttachmentsPost
 
-func GetAttachments() []WpPostsAttachments {
-
+func GetAttachments() *[]WpPostsAttachments {
+	start := time.Now()
 	rows, err := dbs.Query("SELECT ID, post_title, post_parent, guid FROM wp_posts WHERE post_type = 'attachment';")
 
 	if err != nil {
@@ -202,8 +207,9 @@ func GetAttachments() []WpPostsAttachments {
 				Guid: a.Guid}}
 		attachmentsPosts = append(attachmentsPosts, attachmentsItem)
 	}
-
-	return attachmentsPosts
+	duration := time.Since(start)
+	fmt.Println("Attachments: ", duration)
+	return &attachmentsPosts
 }
 
 type Attachment struct {
@@ -217,13 +223,14 @@ type Attachment struct {
 
 type sizeAttachments map[string]string
 
-func SetMapAttachmentsBySizes() map[int64][]sizeAttachments {
+func SetMapAttachmentsBySizes() *map[int64][]sizeAttachments {
+	start := time.Now()
 	suffixes := [6]string{"--w_100", "--w_150", "--w_300", "--w_400", "--w_500", ""}
 	mimeTypes := []string{"png", "jpg", "jpeg"}
 	attachmentsAll := GetAttachments()
 	dataList := make(map[int64][]sizeAttachments)
 
-	for _, attach := range attachmentsAll {
+	for _, attach := range *attachmentsAll {
 		for attachId, attachItem := range attach {
 			url := strings.Split(attachItem.Guid, ".")
 			count := len(url)
@@ -253,8 +260,9 @@ func SetMapAttachmentsBySizes() map[int64][]sizeAttachments {
 			}
 			}
 		}
-
-	return dataList
+	duration := time.Since(start)
+	fmt.Println("AttachmentsBySizes: ", duration)
+	return &dataList
 }
 
 func getSuffix(suffix string) string {
@@ -299,8 +307,8 @@ type TermRelationships struct {
 
 type WpTableTermRelationships map[int64][]TermRelationships
 
-func GetTermRelationships() WpTableTermRelationships {
-
+func GetTermRelationships() *WpTableTermRelationships {
+	start := time.Now()
 	rows, err := dbs.Query("SELECT object_id, term_taxonomy_id FROM wp_term_relationships")
 
 	if err != nil {
@@ -328,8 +336,10 @@ func GetTermRelationships() WpTableTermRelationships {
 		tmp_r := TermRelationships{rl.Object_id, rl.Term_taxonomy_id}
 		wp_term_relationships[ri] = append(wp_term_relationships[ri], tmp_r)
 	}
-
-	return wp_term_relationships
+	duration := time.Since(start)
+	fmt.Println("TermRelationships: ", duration)
+	fmt.Println("LEN: ", len(wp_term_relationships))
+	return &wp_term_relationships
 }
 
 type Post struct {
@@ -349,7 +359,7 @@ type Post struct {
 type WpPosts map[int64]Post
 
 func GetPosts() *[]WpPosts {
-
+	start := time.Now()
 	rows, err := dbs.Query("SELECT ID, post_content, post_title, post_status, post_parent, guid, post_name, post_date, post_modified, post_type, menu_order FROM wp_posts WHERE post_status = 'publish' OR post_status = 'inherit' OR post_status = 'future'")
 
 	if err != nil {
@@ -399,13 +409,16 @@ func GetPosts() *[]WpPosts {
 			Menu_order: post.Menu_order}}
 		wpPostList = append(wpPostList, wpPosts)
 	}
-
+	duration := time.Since(start)
+	fmt.Println("GetPosts: ", duration)
+	fmt.Println("LEN: ", len(wpPostList))
 	return &wpPostList
 }
 
 type WpFabrics map[int64]Post
 
-func GetFabrics(fabrics []WpPosts) []WpFabrics {
+func GetFabrics(fabrics []WpPosts) *[]WpFabrics {
+	start := time.Now()
 	fb := fabrics
 
 	var wp_fabrics []WpFabrics
@@ -429,20 +442,21 @@ func GetFabrics(fabrics []WpPosts) []WpFabrics {
 			}
 		}
 	}
-
-	return wp_fabrics
+	duration := time.Since(start)
+	fmt.Println("GetFabrics: ", duration)
+	fmt.Println("LEN: ", len(wp_fabrics))
+	return &wp_fabrics
 }
 
 type Postmeta struct {
-	Meta_id string `json:"meta_id"`
 	Post_id string `json:"post_id"`
 	Meta_key string `json:"meta_key"`
 	Meta_value sql.NullString `json:"meta_value"`
 }
 
-func GetPostmeta() map[int64][]Postmeta {
-
-	rows, err := dbs.Query("SELECT * FROM wp_postmeta")
+func GetPostmeta() *map[int64][]Postmeta {
+	start := time.Now()
+	rows, err := dbs.Query("SELECT post_id, meta_key, meta_value FROM wp_postmeta")
 
 	if err != nil {
 		panic(err)
@@ -454,7 +468,7 @@ func GetPostmeta() map[int64][]Postmeta {
 
 	for rows.Next() {
 		pm := Postmeta{}
-		err := rows.Scan(&pm.Meta_id, &pm.Post_id, &pm.Meta_key, &pm.Meta_value)
+		err := rows.Scan(&pm.Post_id, &pm.Meta_key, &pm.Meta_value)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -467,13 +481,14 @@ func GetPostmeta() map[int64][]Postmeta {
 	for _, m := range postMeta {
 		mi := strToInt(m.Post_id)
 		wpm := Postmeta{
-			Meta_id: m.Meta_id,
 			Post_id: m.Post_id,
 			Meta_key: m.Meta_key,
 			Meta_value: m.Meta_value,
 		}
 		wpPostMeta[mi] = append(wpPostMeta[mi], wpm)
 	}
-
-	return wpPostMeta
+	duration := time.Since(start)
+	fmt.Println("PostMeta: ", duration)
+	fmt.Println("LEN: ", len(wpPostMeta))
+	return &wpPostMeta
 }

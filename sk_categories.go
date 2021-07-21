@@ -65,7 +65,7 @@ func SkCategories(terms []WpTerms,
 									Detail_description: setDetailDescription(thisTermMeta),
 								},
 							}
-
+							//fmt.Println("================", categoryItems)
 							categoriesData = append(categoriesData, categoryItems)
 						}
 					}
@@ -78,16 +78,7 @@ func SkCategories(terms []WpTerms,
 }
 
 func setThisTermMeta(id int64, termMeta map[int64][]TermmetaItems) []TermmetaItems {
-	var thisTermMeta []TermmetaItems
-
-	for key, value := range termMeta {
-		if key == id {
-			thisTermMeta = value
-			break
-		}
-	}
-
-	return thisTermMeta
+	return termMeta[id]
 }
 
 func setId(term Term) string {
@@ -148,12 +139,8 @@ func setThumbnail(termMeta []TermmetaItems, attachments map[int64][]sizeAttachme
 
 	for _, v := range termMeta {
 		if val, ok := v["thumbnail_id"]; ok {
-			for k, img := range attachments {
-				i, _ := strconv.ParseInt(val, 10, 64)
-				if i == k {
-					thumbnails = img
-				}
-			}
+			i, _ := strconv.ParseInt(val, 10, 64)
+			thumbnails = attachments[i]
 		}
 	}
 

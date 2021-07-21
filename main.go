@@ -22,11 +22,16 @@ func main() {
 
 	//xType := fmt.Sprintf("%T", terms)
 	//fmt.Println(xType) // "[]int"
+	start_c := time.Now()
+	SkCategories(*terms, *term_taxonomy, *termmeta, *attachmentsPosts, *relationships, *posts)
+	duration_c := time.Since(start_c)
+	fmt.Println("main SkCategories: ", duration_c)
 
-	SkCategories(terms, term_taxonomy, termmeta, attachmentsPosts, relationships, *posts)
-	SkFabrics(fabrics, postMeta)
-
+	start_f := time.Now()
+	SkFabrics(*fabrics, *postMeta, *terms, *termmeta, *attachmentsPosts)
+	duration_f := time.Since(start_f)
+	fmt.Println("main SkFabrics: ", duration_f)
 
 	duration := time.Since(start)
-	fmt.Println(duration)
+	fmt.Println("main: ", duration)
 }
